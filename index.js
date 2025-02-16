@@ -26,6 +26,12 @@ async function run() {
     const queriesCollection = db.collection("queries");
     const recommendCollection = db.collection("recommend");
 
+    app.post("/queries", async (req, res) => {
+      const formInfo = req.body;
+      const result = await queriesCollection.insertOne(formInfo);
+      console.log(result);
+      res.send(result);
+    });
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     // Send a ping to confirm a successful connection
@@ -35,7 +41,7 @@ async function run() {
     );
   } finally {
     // Ensures that the client will close when you finish/error
-    await client.close();
+    // await client.close();
   }
 }
 run().catch(console.dir);
