@@ -1,7 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -25,12 +25,41 @@ async function run() {
     const db = client.db("recommendation");
     const queriesCollection = db.collection("queries");
     const recommendCollection = db.collection("recommend");
-
+    // save all query in db
     app.post("/queries", async (req, res) => {
       const formInfo = req.body;
       const result = await queriesCollection.insertOne(formInfo);
       console.log(result);
       res.send(result);
+    });
+    // get all query created by specific user
+    app.get("/queries/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { "buyer.email": email };
+      const result = await queriesCollection.find(query).toArray();
+      res.send(result);
+    });
+    //get single query
+    app.get("/queries/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const result = await queriesCollection.findOne(filter);
+      res.send(result);
+    });
+    //  get all query data from db
+    app.get("/queries", async (req, res) => {
+      const result = await queriesCollection.find().toArray();
+      res.send(result);
+
+      // let limit = parseInt(req.query.limit) || 0;
+
+      // let result;
+      // if (limit > 0) {
+      //   result = await queries.find().limit(limit).toArray();
+      // } else {
+      //   result = await queries.find().toArray();
+      // }
+      // res.send(result);
     });
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
