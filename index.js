@@ -25,6 +25,35 @@ async function run() {
     const db = client.db("recommendation");
     const queriesCollection = db.collection("queries");
     const recommendCollection = db.collection("recommend");
+
+    // -- recommend collections -- //
+
+    //post recommendations
+    app.post("/recommend", async (req, res) => {
+      const recommendation = req.body;
+      const result = await recommendCollection.insertOne(recommendation);
+      if (result.insertedId) {
+        const queryFilter = { _id: new ObjectId(recommendation.queryId) };
+        const update = { $inc: { recommendationCount: 1 } };
+
+        const incrememntResult = await queriesCollection.updateOne(
+          queryFilter,
+          update
+        );
+      }
+
+      res.send(result);
+    });
+    //get recommendations by me
+    app.get("/recommended-by-me/:email", async (req, res) => {
+      let email = req.params.email;
+      let filter = { recommenderEmail: email };
+
+      let result = await recommendCollection.find(filter).toArray();
+      res.send(result);
+    });
+
+    //  --- queries collections --- //
     // save all query in db
     app.post("/queries", async (req, res) => {
       const formInfo = req.body;
