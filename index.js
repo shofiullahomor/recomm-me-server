@@ -52,6 +52,28 @@ async function run() {
       let result = await recommendCollection.find(filter).toArray();
       res.send(result);
     });
+    //delete recommendation
+    app.delete("/recommendations/:id", async (req, res) => {
+      let id = req.params.id;
+      let filter = { _id: new ObjectId(id) };
+
+      let recommendation = await recommendCollection.findOne(filter);
+
+      let result = await recommendCollection.deleteOne(filter);
+
+      //decrease the recommendation count
+      if (result.deletedCount === 1) {
+        let queryFilter = { _id: new ObjectId(recommendation.queryId) };
+        let update = { $inc: { recommendationCount: -1 } };
+
+        let decrememntResult = await queriesCollection.updateOne(
+          queryFilter,
+          update
+        );
+      }
+
+      res.send(result);
+    });
 
     //  --- queries collections --- //
     // save all query in db
