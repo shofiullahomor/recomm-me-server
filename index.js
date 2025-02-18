@@ -46,11 +46,31 @@ async function run() {
       const result = await queriesCollection.deleteOne(query);
       res.send(result);
     });
+    // get a single query by Id from db
+    app.get("/query/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await queriesCollection.findOne(query);
+      res.send(result);
+    });
     //get single query
     app.get("/queries/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const result = await queriesCollection.findOne(filter);
+      res.send(result);
+    });
+    // update query
+    app.put("/update-query/:id", async (req, res) => {
+      const id = req.params.id;
+      const formInfo = req.body;
+      const updated = {
+        $set: formInfo,
+      };
+      const query = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const result = await queriesCollection.updateOne(query, updated, options);
+      console.log(result);
       res.send(result);
     });
     //  get all query data from db
