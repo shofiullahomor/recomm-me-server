@@ -27,7 +27,15 @@ async function run() {
     const recommendCollection = db.collection("recommend");
 
     // -- recommend collections -- //
+    //get all recommendations by query id
+    app.get("/recommendations/:id", async (req, res) => {
+      let queryId = req.params.id;
+      let filter = { queryId: queryId };
 
+      let result = await recommendCollection.find(filter).toArray();
+
+      res.send(result);
+    });
     //post recommendations
     app.post("/recommend", async (req, res) => {
       const recommendation = req.body;
@@ -46,6 +54,14 @@ async function run() {
     });
     //get recommendations by me
     app.get("/recommended-by-me/:email", async (req, res) => {
+      let email = req.params.email;
+      let filter = { recommenderEmail: email };
+
+      let result = await recommendCollection.find(filter).toArray();
+      res.send(result);
+    });
+    // recommendations for me
+    app.get("/recommendedForMe/:email", async (req, res) => {
       let email = req.params.email;
       let filter = { recommenderEmail: email };
 
