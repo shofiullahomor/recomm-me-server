@@ -143,7 +143,7 @@ async function run() {
 
     //  --- queries collections --- //
     // save all query in db
-    app.post("/queries", verifyToken, async (req, res) => {
+    app.post("/queries", async (req, res) => {
       const formInfo = req.body;
       const result = await queriesCollection.insertOne(formInfo);
       console.log(result);
