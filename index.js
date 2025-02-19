@@ -1,13 +1,39 @@
 require("dotenv").config();
 const express = require("express");
+const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 5000;
 
 // MIDDLE WARE
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://recomm-me.web.app",
+      "https://recomm-me.firebaseapp.com",
+    ],
+    credentials: true,
+  })
+);
 app.use(express.json());
+app.use(cookieParser());
+
+const verifyToken = (req, res, next) => {
+  const token = req.cookies?.token;
+  if (!token) {
+    return res.status(401).send({ message: "unauthorized access" });
+  }
+
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ message: "unauthorized access" });
+    }
+    next();
+  });
+};
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.zpfgk.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -25,6 +51,30 @@ async function run() {
     const db = client.db("recommendation");
     const queriesCollection = db.collection("queries");
     const recommendCollection = db.collection("recommend");
+
+    // jwt token related api
+    app.post("/jwt", async (req, res) => {
+      const email = req.body;
+      const token = jwt.sign(email, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1d",
+      });
+      res
+        .cookie("token", token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        })
+        .send({ success: true });
+    });
+    app.post("/logout", (req, res) => {
+      res
+        .clearCookie("token", {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        })
+        .send({ success: true });
+    });
 
     // -- recommend collections -- //
     //get all recommendations by query id
@@ -93,7 +143,7 @@ async function run() {
 
     //  --- queries collections --- //
     // save all query in db
-    app.post("/queries", async (req, res) => {
+    app.post("/queries", verifyToken, async (req, res) => {
       const formInfo = req.body;
       const result = await queriesCollection.insertOne(formInfo);
       console.log(result);
@@ -140,6 +190,17 @@ async function run() {
       console.log(result);
       res.send(result);
     });
+
+    //search queries in queries page
+    app.get("/search", async (req, res) => {
+      let query = req.query.q;
+      let filter = {
+        productName: { $regex: query, $options: "i" },
+      };
+      let result = await queriesCollection.find(filter).toArray();
+
+      res.send(result);
+    });
     //  get all query data from db
     app.get("/queries", async (req, res) => {
       const result = await queriesCollection.find().toArray();
@@ -156,12 +217,12 @@ async function run() {
       // res.send(result);
     });
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    // await client.db("admin").command({ ping: 1 });
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!"
+    // );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
